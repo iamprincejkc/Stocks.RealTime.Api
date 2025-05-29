@@ -2,20 +2,32 @@
 using Stocks.Hub;
 using Stocks.Models;
 using Stocks.Stocks;
+using System.Collections.Concurrent;
 
 namespace Stocks.Services
 {
     internal sealed class StockService(ActiveTickerManager activeTickerManager,ISqlDatasource datasource, StocksClient stocksClient, ILogger<StockService> logger)
     {
+        private readonly ConcurrentDictionary<string, StockPriceResponse> _priceCache = new();
+
         public async Task<StockPriceResponse?> GetLatestStockPrice(string ticker)
         {
+
+            if (_priceCache.TryGetValue(ticker, out var cachedPrice))
+            {
+                if (DateTime.UtcNow - cachedPrice.Timestamp < TimeSpan.FromSeconds(5))
+                {
+                    return cachedPrice;
+                }
+            }
+
+
             try
             {
                 // Attempt to get the stock price from the datasource
                 var dbPrice = await GetLatestPriceFromDatabase(ticker);
                 if (dbPrice != null)
                 {
-                    activeTickerManager.AddTicker(ticker);
                     return dbPrice;
                 }
                 // If not found, fetch from external API
@@ -27,16 +39,15 @@ namespace Stocks.Services
 
                 await SavePriceToDatabase(apiPrice);
 
-
-                activeTickerManager.AddTicker(ticker);
+                _priceCache[ticker] = apiPrice; //cache
 
                 return apiPrice;
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error fetching stock price for {Ticker}", ticker);
+                return null; // Return null if no data found or an error occurred
             }
-            return null; // Return null if no data found or an error occurred
         }
 
         private async Task<StockPriceResponse?> GetLatestPriceFromDatabase(string ticker)

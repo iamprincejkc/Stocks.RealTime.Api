@@ -4,19 +4,31 @@ namespace Stocks.Hub
 {
     internal sealed class ActiveTickerManager
     {
-        private readonly ConcurrentBag<string> _activeTickers = new ConcurrentBag<string>();    
+        private readonly ConcurrentDictionary<string, int> _activeTickers = new();
 
         public void AddTicker(string ticker)
         {
-            if (!_activeTickers.Contains(ticker))
-            {
-                _activeTickers.Add(ticker);
-            }
-        }   
+            _activeTickers.AddOrUpdate(ticker, 1, (_, count) => count + 1);
+        }
 
-        public IReadOnlyCollection<string> GetAllTicker()
+        public void RemoveTicker(string ticker)
         {
-            return _activeTickers.ToList().AsReadOnly();
+            if (_activeTickers.TryGetValue(ticker, out var count))
+            {
+                if (count <= 1)
+                {
+                    _activeTickers.TryRemove(ticker, out _);
+                }
+                else
+                {
+                    _activeTickers[ticker] = count - 1;
+                }
+            }
+        }
+
+        public IEnumerable<string> GetAllTicker()
+        {
+            return _activeTickers.Keys;
         }
     }
 }

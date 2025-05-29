@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Stocks.Models;
+using Stocks.RealTime.Api.Helper;
 using Stocks.Services;
 
 namespace Stocks.Hub;
@@ -41,11 +42,14 @@ internal sealed class StocksFeedUpdater(
                 {
                     continue;
                 }
-                decimal newPrice = CalculateNewPrice(price);
 
-                var update = new StockPriceUpdate(ticker, newPrice);
+                var newPrice = PriceCalculator.CalculateNewPrice(price.Price, _options.MaxPercentageChange);
 
-                await hubContext.Clients.Group(ticker).ReceiveStockPriceUpdate(update);
+                if (newPrice != price.Price)
+                {
+                    var update = new StockPriceUpdate(ticker, newPrice);
+                    await hubContext.Clients.Group(ticker).ReceiveStockPriceUpdate(update);
+                }
 
             }
             catch (Exception ex)
@@ -55,13 +59,5 @@ internal sealed class StocksFeedUpdater(
         }
     }
 
-    private decimal CalculateNewPrice(StockPriceResponse currentPrice)
-    {
-        double change = _options.MaxPercentageChange;
-        decimal priceFactor= (decimal)(_random.NextDouble() * change * 2 - change);
-        decimal priceChange = currentPrice.Price * priceFactor;
-        decimal newPrice = Math.Max(0,currentPrice.Price + priceChange);
-        newPrice = Math.Round(newPrice, 2);
-        return newPrice;
-    }
+    
 }

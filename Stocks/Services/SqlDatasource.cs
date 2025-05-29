@@ -11,11 +11,13 @@ namespace Stocks.Services
         {
             _connectionString = connectionString;
         }
-
+      
         public IDbConnection CreateConnection()
         {
             return new SqlConnection(_connectionString);
         }
+
+
     }
 
 }

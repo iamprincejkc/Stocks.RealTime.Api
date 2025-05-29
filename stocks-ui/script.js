@@ -3,6 +3,20 @@ const config = {
   apiRootUrl: "https://localhost:7286",
 };
 
+const sidebarToggle = document.getElementById("sidebarToggle");
+const sidebarDrawer = document.getElementById("sidebarDrawer");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+sidebarToggle.addEventListener("click", () => {
+  sidebarDrawer.classList.remove("-translate-x-full");
+  sidebarOverlay.classList.remove("hidden");
+});
+
+sidebarOverlay.addEventListener("click", () => {
+  sidebarDrawer.classList.add("-translate-x-full");
+  sidebarOverlay.classList.add("hidden");
+});
+
 class StockWidget {
   constructor(ticker, connection) {
     this.ticker = ticker;
@@ -264,7 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Function to load predefined tickers
   function loadPredefinedTickers() {
-    const tickers = ["USD", "PHP", "JPY", "NZD", "TSLA", "BABA", "PYPL"];
+    const tickers = ["USD", "PHP", "JPY", "TSLA", "BABA", "PYPL"];
     tickers.forEach((ticker) => addStock(ticker));
   }
 });
